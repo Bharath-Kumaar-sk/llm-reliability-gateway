@@ -1,0 +1,40 @@
+services:
+
+  redis:
+    image: redis/redis-stack-server:7.4.0-v8
+    container_name: llm-gateway-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+  prometheus:
+    image: prom/prometheus:v3.14.0
+    container_name: llm-gateway-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docs/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+
+  mock-llm:
+    build:
+      context: ./mock-llm
+    container_name: llm-gateway-mock-llm
+    ports:
+      - "8082:8082"
+
+  gateway:
+    build:
+      context: ./gateway
+    container_name: llm-gateway-gateway
+    ports:
+      - "8081:8081"
+    environment:
+      LLM_PROVIDER_BASE_URL: http://mock-llm:8082
+    depends_on:
+      - mock-llm
+
+volumes:
+  redis-data:
+  prometheus-data:
